@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Recibos - Mirador La Cumbre</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://kit.fontawesome.com/4c8928dd4c.js" crossorigin="anonymous"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'navy': '#1e3a8a',
+                        'navy-light': '#3b82f6',
+                        'navy-dark': '#1e40af'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .status-pending { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+        .status-processing { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .status-invoiced { background: linear-gradient(135deg, #10b981, #059669); }
+        .status-expired { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .btn-link {
+            transition: all 0.2s ease;
+            transform: scale(1);
+        }
+        .btn-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1e3a8a;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-navy shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Gestión de Recibos</h1>
+                    <p class="text-blue-200 mt-1">Mirador La Cumbre</p>
+                </div>
+                <button id="rectificationBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors btn-link">
+                    Rectificación
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Public Search Section -->
+        <div id="publicSection" class="fade-in">
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">Consultar Recibo</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Número de Recibo</label>
+                        <input type="text" id="receiptNumber" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-transparent" placeholder="Ingrese número de recibo">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Número de Orden</label>
+                        <input type="text" id="orderNumber" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-transparent" placeholder="Ingrese número de orden">
+                    </div>
+                </div>
+                <button onclick="searchReceipt()" class="mt-6 bg-navy hover:bg-navy-dark text-white px-8 py-3 rounded-lg font-medium transition-colors btn-link">
+                    Buscar Recibo
+                </button>
+            </div>
+
+            <!-- Receipt Results -->
+            <div id="receiptResults" class="hidden bg-white rounded-xl shadow-lg p-8">
+                <div id="receiptInfo"></div>
+                <!-- Customer Data Form (will be shown dynamically) -->
+                <div id="customerForm" class="hidden mt-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-6">Registrar Datos para Facturación</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo</label>
+                            <input type="text" id="customerName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">NIT</label>
+                            <input type="text" id="customerNIT" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
+                            <input type="text" id="customerAddress" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">WhatsApp</label>
+                            <input type="text" id="customerWhatsApp" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy" placeholder="+502 XXXXXXXX">
+                        </div>
+                    </div>
+                    <button onclick="saveCustomerData()" class="mt-6 bg-navy hover:bg-navy-dark text-white px-8 py-3 rounded-lg font-medium btn-link">
+                        Guardar Datos
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Section -->
+        <div id="adminSection" class="hidden fade-in">
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-800">Panel de Administración</h2>
+                    <button onclick="showPublicView()" class="text-navy hover:text-navy-dark font-medium">← Volver a Vista Pública</button>
+                </div>
+                
+                <!-- Search and Filter -->
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Inicio</label>
+                        <input type="date" id="startDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Fin</label>
+                        <input type="date" id="endDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="filterReceipts()" class="w-full bg-navy hover:bg-navy-dark text-white px-4 py-2 rounded-lg font-medium btn-link">
+                            Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Receipt List -->
+                <div id="receiptList" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-auto max-h-[95vh] overflow-y-auto transform scale-95 opacity-0 transition-all duration-300 ease-in-out">
+                <div class="p-8">
+                    <div class="flex justify-between items-center mb-6 sticky top-0 bg-white pb-4">
+                        <h3 class="text-2xl font-semibold text-gray-800">Editar Recibo</h3>
+                        <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700 text-3xl leading-none">&times;</button>
+                    </div>
+                    
+                    <div id="editContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authentication Modal -->
+        <div id="authModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 transform scale-95 opacity-0 transition-all duration-300 ease-in-out">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">Autenticación Requerida</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
+                        <input type="text" id="authUser" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy" placeholder="Caja">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                        <input type="password" id="authPassword" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy">
+                    </div>
+                </div>
+                <div class="flex gap-4 mt-6">
+                    <button onclick="authenticate()" class="flex-1 bg-navy hover:bg-navy-dark text-white py-3 rounded-lg font-medium btn-link">
+                        Ingresar
+                    </button>
+                    <button onclick="closeAuthModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-3 rounded-lg font-medium btn-link">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Alert/Modal Box -->
+        <div id="customAlert" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+            <div class="bg-white rounded-xl shadow-2xl p-6 max-w-xs w-full mx-4 transform scale-95 opacity-0 transition-all duration-300 ease-in-out">
+                <h4 id="alertTitle" class="text-xl font-semibold mb-3 text-gray-800"></h4>
+                <p id="alertMessage" class="text-gray-600 mb-4"></p>
+                <div class="flex justify-end">
+                    <button onclick="closeCustomAlert()" class="bg-navy hover:bg-navy-dark text-white px-6 py-2 rounded-lg font-medium">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAJYb8uqSaZOqgXuEFh299LQ83VtDo1-Y",
+            authDomain: "mirador-recibos-app.firebaseapp.com",
+            projectId: "mirador-recibos-app",
+            storageBucket: "mirador-recibos-app.appspot.com",
+            messagingSenderId: "773339755737",
+            appId: "1:773339755737:web:a436af97e2ff097cea7ac8"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+    </script>
+
+    <script>
+        let currentReceipt = null;
+        let isAuthenticated = false;
+
+        // Custom alert function (sin cambios)
+        function customAlert(title, message) {
+            document.getElementById('alertTitle').innerText = title;
+            document.getElementById('alertMessage').innerText = message;
+            const alertModal = document.getElementById('customAlert');
+            alertModal.classList.remove('hidden');
+            const content = alertModal.querySelector('div');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeCustomAlert() {
+            const alertModal = document.getElementById('customAlert');
+            const content = alertModal.querySelector('div');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                alertModal.classList.add('hidden');
+            }, 300);
+        }
+
+        // --- FUNCIONES MODIFICADAS PARA USAR EL BACKEND ---
+
+        async function searchReceipt() {
+            const receiptNum = document.getElementById('receiptNumber').value.trim();
+            const orderNum = document.getElementById('orderNumber').value.trim();
+            
+            if (!receiptNum && !orderNum) {
+                customAlert('Error', 'Por favor ingrese un número de recibo o número de orden.');
+                return;
+            }
+
+            const receiptInfoDiv = document.getElementById('receiptInfo');
+            receiptInfoDiv.innerHTML = `<div class="loader"></div>`;
+            document.getElementById('receiptResults').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/loyverse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'getReceipt',
+                        payload: { receiptNumber: receiptNum, orderNumber: orderNum }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Recibo no encontrado.');
+                }
+
+                const combinedData = await response.json();
+                currentReceipt = combinedData;
+                displayReceiptInfo(currentReceipt);
+
+            } catch (error) {
+                console.error("Error al buscar recibo:", error);
+                receiptInfoDiv.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-red-500 text-xl mb-2">❌</div>
+                        <h3 class="text-lg font-semibold text-gray-800">Recibo no encontrado</h3>
+                        <p class="text-gray-600">${error.message}</p>
+                    </div>
+                `;
+                document.getElementById('customerForm').classList.add('hidden');
+            }
+        }
+
+        async function showAdminSection() {
+            document.getElementById('publicSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.remove('hidden');
+            document.getElementById('adminSection').scrollIntoView({ behavior: 'smooth' });
+            
+            const receiptListDiv = document.getElementById('receiptList');
+            receiptListDiv.innerHTML = `<div class="loader"></div>`;
+
+            try {
+                const response = await fetch('/api/loyverse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'getReceiptsByDate',
+                        payload: {} // Carga inicial sin filtro de fecha
+                    })
+                });
+
+                if (!response.ok) throw new Error('No se pudieron cargar los recibos.');
+
+                const receipts = await response.json();
+                loadReceiptList(receipts);
+
+            } catch (error) {
+                console.error("Error cargando recibos para admin:", error);
+                receiptListDiv.innerHTML = `<div class="text-center text-red-500 py-8">${error.message}</div>`;
+            }
+        }
+        
+        async function filterReceipts() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            const receiptListDiv = document.getElementById('receiptList');
+            receiptListDiv.innerHTML = `<div class="loader"></div>`;
+
+            try {
+                const response = await fetch('/api/loyverse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'getReceiptsByDate',
+                        payload: { startDate, endDate }
+                    })
+                });
+
+                if (!response.ok) throw new Error('No se pudieron filtrar los recibos.');
+                
+                const receipts = await response.json();
+                loadReceiptList(receipts);
+
+            } catch (error) {
+                console.error("Error filtrando recibos:", error);
+                receiptListDiv.innerHTML = `<div class="text-center text-red-500 py-8">${error.message}</div>`;
+            }
+        }
+
+        // ¡FUNCIÓN MODIFICADA PARA GUARDAR EN LA BASE DE DATOS!
+        async function saveCustomerData() {
+            if (!currentReceipt) {
+                customAlert('Error', 'No se ha seleccionado un recibo.');
+                return;
+            }
+            const name = document.getElementById('customerName').value.trim();
+            const nit = document.getElementById('customerNIT').value.trim();
+            const address = document.getElementById('customerAddress').value.trim();
+            const whatsapp = document.getElementById('customerWhatsApp').value.trim();
+
+            if (!name || !nit || !address || !whatsapp) {
+                customAlert('Error', 'Por favor complete todos los campos.');
+                return;
+            }
+
+            const customerData = { name, nit, address, whatsapp };
+            
+            try {
+                const response = await fetch('/api/loyverse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveCustomerData',
+                        payload: {
+                            loyverseId: currentReceipt.loyverseId,
+                            customerData: customerData
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'No se pudieron guardar los datos.');
+                }
+
+                // Si se guarda con éxito, actualizamos la vista localmente
+                currentReceipt.customerData = customerData;
+                currentReceipt.status = 'processing';
+                displayReceiptInfo(currentReceipt);
+                customAlert('Éxito', 'Datos guardados exitosamente. El estado del recibo ha cambiado a "En Proceso".');
+
+            } catch (error) {
+                console.error("Error al guardar datos:", error);
+                customAlert('Error', `No se pudieron guardar los datos: ${error.message}`);
+            }
+        }
+
+        // --- FUNCIONES DE VISUALIZACIÓN Y LÓGICA (Mayormente sin cambios) ---
+
+        document.getElementById('rectificationBtn').addEventListener('click', showAuthModal);
+        document.getElementById('receiptNumber').addEventListener('keypress', function(e) { if (e.key === 'Enter') searchReceipt(); });
+        document.getElementById('orderNumber').addEventListener('keypress', function(e) { if (e.key === 'Enter') searchReceipt(); });
+
+        function displayReceiptInfo(receipt) {
+            const statusInfo = getStatusInfo(receipt.status);
+            const isPending = receipt.status === 'pending';
+            const isInvoiced = receipt.status === 'invoiced';
+
+            let html = `
+                <div class="border-l-4 border-navy pl-6 mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Información del Recibo</h3>
+                    <div class="grid md:grid-cols-2 gap-4 mb-4">
+                        <div><strong>Número de Recibo:</strong> ${receipt.receiptNumber}</div>
+                        <div><strong>Número de Orden:</strong> ${receipt.orderNumber}</div>
+                        <div><strong>Fecha:</strong> ${receipt.date}</div>
+                        <div><strong>Hora:</strong> ${receipt.time}</div>
+                        <div><strong>Cliente:</strong> ${receipt.customerData ? receipt.customerData.name : 'N/A'}</div>
+                    </div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-4 py-2 rounded-full text-white font-medium ${statusInfo.class}">
+                            ${statusInfo.label}
+                        </span>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                    <p class="text-gray-700">${statusInfo.message}</p>
+                </div>
+            `;
+
+            if (isPending && !receipt.customerData) {
+                document.getElementById('customerForm').classList.remove('hidden');
+            } else {
+                document.getElementById('customerForm').classList.add('hidden');
+            }
+
+            if (isInvoiced && receipt.invoiceLinks.length > 0) {
+                html += `
+                    <div class="mt-6 flex flex-col md:flex-row gap-4">
+                        <button onclick="downloadInvoice('${receipt.receiptNumber}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors btn-link">
+                            <i class="fas fa-download mr-2"></i> Descargar Factura
+                        </button>
+                    </div>
+                `;
+            }
+
+            document.getElementById('receiptInfo').innerHTML = html;
+            document.getElementById('receiptResults').classList.remove('hidden');
+            document.getElementById('receiptResults').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function getStatusInfo(status) {
+            const messages = {
+                'pending': 'Para asegurar la correcta emisión de tu factura, necesitamos tus datos. Por favor, regístralos a la brevedad. De no recibirlos en las próximas 24 horas, tu factura se emitirá automáticamente como Consumidor Final.',
+                'processing': 'Estamos terminando de procesar tu factura. Por favor, regresa más tarde para descargarla al final de este recibo.',
+                'invoiced': '¡Excelente noticia! Tu factura ha sido procesada y ya está disponible.',
+                'expired': 'Este recibo ha caducado. No es posible registrar datos de facturación para recibos con más de 30 días de antigüedad.'
+            };
+            const labels = { 'pending': 'Pendiente', 'processing': 'En Proceso', 'invoiced': 'Facturado', 'expired': 'Caducado' };
+            const classes = { 'pending': 'status-pending', 'processing': 'status-processing', 'invoiced': 'status-invoiced', 'expired': 'status-expired' };
+            return {
+                label: labels[status] || 'Desconocido',
+                class: classes[status] || 'bg-gray-500',
+                message: messages[status] || 'Estado desconocido'
+            };
+        }
+
+        function downloadInvoice(receiptNumber) {
+            if (!currentReceipt || !currentReceipt.invoiceLinks.length) {
+                customAlert('Error', 'No hay enlaces de factura disponibles.');
+                return;
+            }
+            const links = currentReceipt.invoiceLinks.map(link => `${link.name}: ${link.url}`).join('%0A');
+            const message = `confirmación de descarga de factura adjuntas al enlace:%0A${links}`;
+            const whatsappUrl = `https://wa.me/50247764933?text=${message}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function authenticate() {
+            const user = document.getElementById('authUser').value;
+            const password = document.getElementById('authPassword').value;
+            if (user === 'Caja' && password === '778859') {
+                isAuthenticated = true;
+                closeAuthModal();
+                showAdminSection();
+            } else {
+                customAlert('Error de autenticación', 'Credenciales incorrectas.');
+            }
+        }
+
+        function showPublicView() {
+            document.getElementById('adminSection').classList.add('hidden');
+            document.getElementById('publicSection').classList.remove('hidden');
+            isAuthenticated = false;
+        }
+
+        function loadReceiptList(receipts) {
+            let html = '';
+            const sortedReceipts = [...receipts].sort((a, b) => new Date(b.date) - new Date(a.date));
+            if (sortedReceipts.length === 0) {
+                html = `<div class="text-center text-gray-500 py-8">No se encontraron recibos para este rango de fechas.</div>`;
+            } else {
+                sortedReceipts.forEach(receipt => {
+                    const statusInfo = getStatusInfo(receipt.status);
+                    html += `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                                <div class="flex-1 mb-2 sm:mb-0">
+                                    <div class="flex flex-wrap items-center gap-4 mb-1">
+                                        <span class="font-semibold text-navy-dark">${receipt.receiptNumber}</span>
+                                        <span class="px-3 py-1 rounded-full text-sm text-white ${statusInfo.class}">${statusInfo.label}</span>
+                                        <span class="text-gray-600 text-sm"><i class="fas fa-credit-card mr-1"></i>${receipt.paymentType}</span>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <i class="far fa-calendar-alt mr-1"></i>${receipt.date} ${receipt.time} - ${receipt.customerData ? receipt.customerData.name : 'N/A'}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="font-bold text-lg text-navy">Q${receipt.total.toFixed(2)}</span>
+                                    <button onclick="editReceipt('${receipt.loyverseId}')" class="bg-navy hover:bg-navy-dark text-white px-4 py-2 rounded-lg text-sm btn-link">Editar</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('receiptList').innerHTML = html;
+        }
+
+        function editReceipt(loyverseId) {
+            customAlert('Función en desarrollo', 'La edición de recibos requiere una lógica más compleja para manejar el estado de los datos.');
+        }
+
+        function showAuthModal() {
+            const authModal = document.getElementById('authModal');
+            authModal.classList.remove('hidden');
+            const content = authModal.querySelector('div');
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeAuthModal() {
+            const authModal = document.getElementById('authModal');
+            const content = authModal.querySelector('div');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { authModal.classList.add('hidden'); document.getElementById('authUser').value = ''; document.getElementById('authPassword').value = ''; }, 300);
+        }
+        
+    </script>
+</body>
+</html>
