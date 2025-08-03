@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/loyverse",
+      "destination": "/api/loyverse.js"
+    }
+  ]
+}
